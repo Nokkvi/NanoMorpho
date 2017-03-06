@@ -74,9 +74,9 @@ public class NanoMorphoParser
 
     static Object[] program() throws Exception
     {
-    	Vector<Object> collect = new Vector<>();
-    	while( getToken1()!=0 ) collect.add(function());
-        return collect.toArray();
+    	Vector<Object> res = new Vector<>();
+    	while( getToken1()!=0 ) res.add(function());
+        return res.toArray();
     }
 
     static Object[] function() throws Exception
@@ -142,13 +142,17 @@ public class NanoMorphoParser
     	Vector<Object> res = new Vector<>();
         if( getToken1()==RETURN )
         {
-            over(RETURN); 
+            over(RETURN);
+            res.add("RETURN");
             res.add(expr());
         }
         else if( getToken1()==NAME && NanoMorphoLexer.getToken2()=='=' )
         {
+            String func = getLexeme();
+            res.add(func);
             findVar(over(NAME)); 
-            over('='); 
+            String k =over('=');
+            res.add(k);
             res.add(expr());
         }
         else
@@ -183,47 +187,71 @@ public class NanoMorphoParser
             return e;
         }
     }
-    //TODO: klára
+    //TODO: klï¿½ra
     static Object[] smallexpr() throws Exception
     {
+        Object[] res;
         switch( getToken1() )
         {
         case NAME:
-            over(NAME);
+            String name = over(NAME);
             if( getToken1()=='(' )
             {
                 over('(');
                 if( getToken1()!=')' )
                 {
+                    Vector<Object> args = new Vector<Object>();
                     for(;;)
                     {
-                        expr();
+                        args.add(expr());
                         if( getToken1()==')' ) break;
                         over(',');
                     }
                 }
                 over(')');
+                return new Object[]{"CALL", name, args.toArray()};
             }
-            return;
+            return new Object[]{"NAME", name};
         case WHILE:
-            over(WHILE); expr(); body(); return;
+            Object condition, whileExpr;
+            over(WHILE); 
+            condition = expr(); 
+            whileExpr = body(); 
+            return new Object[]{"WHILE",condition,whileExpr};
         case IF:
-            over(IF); expr(); body();
+            over(IF);
+            res.add("IF"); 
+            res.add(expr()); 
+            res.add(body());
             while( getToken1()==ELSIF )
             {
-                over(ELSIF); expr(); body();
+                over(ELSIF);
+                res.add("ELSIF");
+                res.add(expr()); 
+                res.add(body());
             }
             if( getToken1()==ELSE )
             {
-                over(ELSE); body();
+                over(ELSE); 
+                res.add("ELSE");
+                res.add(body());
             }
-            return;
+            return res;
         case LITERAL:
-            over(LITERAL); return;
+            res = new Object[]{"LITERAL", getToken1()};
+            over(LITERAL); 
+            return res;
         case OPNAME:
-            over(OPNAME); smallexpr(); return;
+            res.add("OPNAME");
+            res.add(getToken1());
+            over(OPNAME); 
+            res.add(smallexpr());
+            return res;
         case '(':
-            over('('); expr(); over(')'); return;
+            over('('); 
+            res.add(expr()); 
+            over(')'); 
+            return res;
         default:
             NanoMorphoLexer.expected("expression");
         }
