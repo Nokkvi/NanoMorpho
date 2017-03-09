@@ -14,32 +14,32 @@ public class NanoMorphoParser
     final static int NAME = 1007;
     final static int OPNAME = 1008;
     final static int LITERAL = 1009;
-    
+
 
     static String advance() throws Exception
     {
         return NanoMorphoLexer.advance();
     }
-    
+
     static String getLexeme(){
     	return NanoMorphoLexer.getLexeme();
     }
-    
+
     static String over( int tok ) throws Exception
     {
         return NanoMorphoLexer.over(tok);
     }
-    
+
     static String over( char tok ) throws Exception
     {
         return NanoMorphoLexer.over(tok);
     }
-    
+
     static int getToken1()
     {
         return NanoMorphoLexer.getToken1();
     }
-    
+
     private static int varCount;
 	private static HashMap<String,Integer> varTable;
 
@@ -57,7 +57,7 @@ public class NanoMorphoParser
 			throw new Error("Variable "+name+" does not exist, near line "+NanoMorphoLexer.getLine());
 		return res;
 	}
-    
+
     static public void main( String[] args ) throws Exception
     {
     	Object[] code = null;
@@ -82,84 +82,68 @@ public class NanoMorphoParser
     static Object[] function() throws Exception
     {
     	varCount = 0;
-    	Vector<String> args = new Vector<String>();
-    	Vector<Object> res = new Vector<>();
     	varTable = new HashMap<String,Integer>();
-    	res.add(getLexeme());
-    	addVar(getLexeme());
-        args.add(over(NAME)); 
-    
+
+        String fname = over(NAME);
+
         over('(');
         if( getToken1()!=')' )
         {
             for(;;)
             {
-            	addVar(getLexeme());
-            	args.add(over(NAME)); 
+            	addVar(over(NAME));
                 if( getToken1()!=',' ) break;
                 over(',');
             }
         }
         over(')'); over('{');
-        int argCount = args.size()-1;
+        int argCount = varCount;
         while( getToken1()==VAR )
         {
-            varCount += decl(); 
+			decl();
             over(';');
         }
-        
-        res.add(argCount);
-        res.add(varCount);
-        
-        res.add(expr());
-        
+
+		Vector<Object> res = new Vector<Object>();
+
         while( getToken1()!='}' )
         {
-            res.add(expr()); 
+            res.add(expr());
             over(';');
         }
         over('}');
-        
-        return res.toArray();
+
+        return new Object[]{fname, argCount, varCount-argCount, res.toArray()};
     }
 
-    static int decl() throws Exception
+    static void decl() throws Exception
     {
-        int varcount = 1;
     	over(VAR);
         for(;;)
         {
             addVar(over(NAME));
-            varcount++;
             if( getToken1()!=',' ) break;
             over(',');
         }
-        return varcount;
     }
 
     static Object[] expr() throws Exception
     {
-    	Vector<Object> res = new Vector<>();
         if( getToken1()==RETURN )
         {
             over(RETURN);
-            res.add("RETURN");
-            res.add(expr());
+            return new Object[]{"RETURN", expr()};
         }
         else if( getToken1()==NAME && NanoMorphoLexer.getToken2()=='=' )
         {
-            String func = getLexeme();
-            res.add(func);
-            findVar(over(NAME)); 
-            String k =over('=');
-            res.add(k);
-            res.add(expr());
+            Integer variable = findVar(over(NAME));
+            over('=');
+            return new Object[]{variable, '"', expr()};
         }
         else
         {
-        	res.add(binopexpr());
+        	return binopexpr();
         }
-        return res.toArray();
     }
 
     static Object[] binopexpr(int pri) throws Exception
@@ -200,57 +184,57 @@ public class NanoMorphoParser
                 over('(');
                 if( getToken1()!=')' )
                 {
-                    Vector<Object> args = new Vector<Object>();
+                    Vector<Object> resu = new Vector<Object>();
                     for(;;)
                     {
-                        args.add(expr());
+                        res.add(expr());
                         if( getToken1()==')' ) break;
                         over(',');
                     }
                 }
                 over(')');
-                return new Object[]{"CALL", name, args.toArray()};
+                return new Object[]{"CALL", name, resu.toArray()};
             }
             return new Object[]{"NAME", name};
         case WHILE:
             Object condition, whileExpr;
-            over(WHILE); 
-            condition = expr(); 
-            whileExpr = body(); 
+            over(WHILE);
+            condition = expr();
+            whileExpr = body();
             return new Object[]{"WHILE",condition,whileExpr};
         case IF:
             over(IF);
-            res.add("IF"); 
-            res.add(expr()); 
+            res.add("IF");
+            res.add(expr());
             res.add(body());
             while( getToken1()==ELSIF )
             {
                 over(ELSIF);
                 res.add("ELSIF");
-                res.add(expr()); 
+                res.add(expr());
                 res.add(body());
             }
             if( getToken1()==ELSE )
             {
-                over(ELSE); 
+                over(ELSE);
                 res.add("ELSE");
                 res.add(body());
             }
             return res;
         case LITERAL:
             res = new Object[]{"LITERAL", getToken1()};
-            over(LITERAL); 
+            over(LITERAL);
             return res;
         case OPNAME:
             res.add("OPNAME");
             res.add(getToken1());
-            over(OPNAME); 
+            over(OPNAME);
             res.add(smallexpr());
             return res;
         case '(':
-            over('('); 
-            res.add(expr()); 
-            over(')'); 
+            over('(');
+            res.add(expr());
+            over(')');
             return res;
         default:
             NanoMorphoLexer.expected("expression");
@@ -260,18 +244,18 @@ public class NanoMorphoParser
     static Object[] body() throws Exception
     {
     	Vector<Object> res = new Vector<>();
-    	
+
         over('{');
         while( getToken1()!='}' )
         {
-            res.add(expr()); 
+            res.add(expr());
             over(';');
         }
         over('}');
-        
+
         return res.toArray();
     }
-    
+
     static int priority( String opname )
     {
         switch( opname.charAt(0) )
@@ -302,7 +286,7 @@ public class NanoMorphoParser
             throw new Error("Invalid opname");
         }
     }
-    
+
     static void generateProgram( String filename, Object[] funs )
     {
         String programname = filename.substring(0,filename.indexOf('.'));
@@ -317,21 +301,23 @@ public class NanoMorphoParser
         System.out.println("*");
         System.out.println("BASIS;");
     }
-    
+
     static void generateFunction( Object[] fun )
     {
-		
+
     }
-    
+
     static int nextLab = 0;
-    
+
     static void generateExpr( Object[] e )
     {
-		
+
     }
-    
+
     static void generateBody( Object[] bod )
     {
-		
+		for(int i=0; i<bod.length; i++) {
+			generateExpr((Object[])bod[i]);
+        }
     }
 }
