@@ -243,7 +243,7 @@ public class NanoMorphoParser
 
     static Object[] body() throws Exception
     {
-    	Vector<Object> res = new Vector<>();
+    	Vector<Object> res = new Vector<Object>();
 
         over('{');
         while( getToken1()!='}' )
@@ -304,7 +304,21 @@ public class NanoMorphoParser
 
     static void generateFunction( Object[] fun )
     {
+            //fun = {fname, countount, varcount, res.toArray()};
+            String fname = (String)fun[0];
+            int count = (Integer)fun[1];
+            int varcount = (Integer)fun[2]; 
+            System.out.println("#\""+fname+"[fun"+count+"]\" =");
+            System.out.println("[");
 
+            for(int k = 0; k<varcount;k++){
+                System.out.println("(MakeVal null)");
+                System.out.println("(Push)");
+            }
+
+            for(int i=3; i!=fun.length; i++) generateExpr((Object)fun[i]);
+            System.out.println("Return");
+            System.out.println("];");
     }
 
     static int nextLab = 0;
