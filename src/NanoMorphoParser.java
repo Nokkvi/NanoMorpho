@@ -142,7 +142,7 @@ public class NanoMorphoParser
         }
         else
         {
-        	return binopexpr();
+        	return binopexpr(priority(NanoMorphoLexer.getLexeme()));
         }
     }
 
@@ -307,7 +307,7 @@ public class NanoMorphoParser
             //fun = {fname, countount, varcount, res.toArray()};
             String fname = (String)fun[0];
             int count = (Integer)fun[1];
-            int varcount = (Integer)fun[2]; 
+            int varcount = (Integer)fun[2];
             System.out.println("#\""+fname+"[fun"+count+"]\" =");
             System.out.println("[");
 
