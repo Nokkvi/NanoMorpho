@@ -306,9 +306,11 @@ public class NanoMorphoParser
     {
             //fun = {fname, argcount, varcount, res.toArray()};
             String fname = (String)fun[0];
+
             int argCount = (Integer)fun[1];
             int varCount = (Integer)fun[2]; 
             System.out.println("#\""+fname+"[fun"+argCount+"]\" =");
+
             System.out.println("[");
 
             for(int k = 0; k<varCount;k++){
