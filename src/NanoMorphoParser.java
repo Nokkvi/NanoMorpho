@@ -207,20 +207,22 @@ public class NanoMorphoParser
             res.add("IF");
             res.add(expr());
             res.add(body());
+            Vector<Object> elsif = new Vector<Object>();
             while( getToken1()==ELSIF )
             {
                 over(ELSIF);
-                res.add("ELSIF");
-                res.add(expr());
-                res.add(body());
+                elsif.add("ELSIF");
+                elsif.add(expr());
+                elsif.add(body());
             }
+            Object[] els = new Object[]
             if( getToken1()==ELSE )
             {
                 over(ELSE);
-                res.add("ELSE");
-                res.add(body());
+                els.add("ELSE");
+                els.add(body());
             }
-            return res;
+            return new Object[]{res, elsif.toArray(), els};
         case LITERAL:
             res = new Object[]{"LITERAL", getToken1()};
             over(LITERAL);
@@ -343,12 +345,32 @@ public class NanoMorphoParser
                 System.out.println("Call \""+e[1]+"[f1]\" "+1);
                 return;
             case IF:
+                //e = {res, elsif, els}
+                Object[] res = e[0];
+                Object[] elsif = e[1];
+                Object[] els = e[2];
+                int labElse = newLab();
+                int labEnd = newLab();
+                generateExpr((Object[])res[1]);
+                System.out.println("_"+labElse+":");
+                generateBody((Object[])res[2]);
+                System.out.println("(Go _"+labEnd+")");
+                for(int i = 0; i<elsif.length;i+=3){
+                  generateExpr(elsif[i+1]);
+                  System.out.println("_"+labElse+":");
+                  generateBody(elsif[i+2]);
+                  System.out.println("(Go _"+labEnd+")");
+                }
+                System.out.println("_"+labElse+":");
+                generateBody(els[1]);
+                System.out.println("_"+labEnd+":");
+                return;
 
             case ELSE:
                 generateBody((Object[])e[1]);
                 return;
             case WHILE:
-                
+
             case CALL:
                 //e = {"CALL", name, args[expr,...,expr]}
                 Object[] args = (Object[])e[2];
