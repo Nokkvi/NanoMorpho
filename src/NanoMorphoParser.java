@@ -14,6 +14,7 @@ public class NanoMorphoParser
     final static int NAME = 1007;
     final static int OPNAME = 1008;
     final static int LITERAL = 1009;
+    final static int CALL = 1010;
 
 
     static String advance() throws Exception
@@ -175,6 +176,7 @@ public class NanoMorphoParser
     static Object[] smallexpr() throws Exception
     {
         Object[] res;
+        Vector<Object> resu = new Vector<Object>();
         switch( getToken1() )
         {
         case NAME:
@@ -184,10 +186,9 @@ public class NanoMorphoParser
                 over('(');
                 if( getToken1()!=')' )
                 {
-                    Vector<Object> resu = new Vector<Object>();
                     for(;;)
                     {
-                        res.add(expr());
+                        resu.add(expr());
                         if( getToken1()==')' ) break;
                         over(',');
                     }
@@ -204,9 +205,7 @@ public class NanoMorphoParser
             return new Object[]{"WHILE",condition,whileExpr};
         case IF:
             over(IF);
-            res.add("IF");
-            res.add(expr());
-            res.add(body());
+            Object[] blah = new Object[]{"IF", expr(), body()};
             Vector<Object> elsif = new Vector<Object>();
             while( getToken1()==ELSIF )
             {
@@ -215,32 +214,29 @@ public class NanoMorphoParser
                 elsif.add(expr());
                 elsif.add(body());
             }
-            Object[] els = new Object[]
+            Object[] els;
             if( getToken1()==ELSE )
             {
                 over(ELSE);
-                els.add("ELSE");
-                els.add(body());
+                els = new Object[]{"ELSE", body()};
             }
-            return new Object[]{res, elsif.toArray(), els};
+            return new Object[]{"IF", expr(), body(), "ELSE", body(), elsif.toArray()};
         case LITERAL:
             res = new Object[]{"LITERAL", getToken1()};
             over(LITERAL);
             return res;
         case OPNAME:
-            res.add("OPNAME");
-            res.add(getToken1());
+            int tok = getToken1();
             over(OPNAME);
-            res.add(smallexpr());
-            return res;
+            return new Object[]{"OPNAME", tok, smallexpr()} ;
         case '(':
             over('(');
-            res.add(expr());
             over(')');
-            return res;
+            return new Object[]{expr()};
         default:
             NanoMorphoLexer.expected("expression");
         }
+        return null;
     }
 
     static Object[] body() throws Exception
@@ -320,7 +316,7 @@ public class NanoMorphoParser
                 System.out.println("(Push)");
             }
 
-            for(int i=3; i!=fun.length; i++) generateExpr((Object)fun[i]);
+            for(int i=3; i!=fun.length; i++) generateExpr((Object[])fun[i]);
             System.out.println("Return");
             System.out.println("];");
     }
@@ -346,29 +342,27 @@ public class NanoMorphoParser
                 return;
             case IF:
                 //e = {res, elsif, els}
-                Object[] res = e[0];
-                Object[] elsif = e[1];
-                Object[] els = e[2];
-                int labElse = newLab();
-                int labEnd = newLab();
-                generateExpr((Object[])res[1]);
+                Object[] argu = (Object[])e[5];
+                int labElse = nextLab++;
+                int labEnd = nextLab++;
+                generateExpr((Object[])e[1]);
                 System.out.println("GoFalse _"+labElse+":");
-                generateBody((Object[])res[2]);
+                generateBody((Object[])e[2]);
                 System.out.println("(Go _"+labEnd+")");
-                for(int i = 0; i<elsif.length;i+=3){
+                for(int i = 0; i<argu.length;i+=3){
                   System.out.println("_"+labElse+":");
-                  generateExpr(elsif[i+1]);
+                  generateExpr((Object[])argu[i+1]);
                   System.out.println("GoFalse _"+labElse+":");
-                  generateBody(elsif[i+2]);
+                  generateBody((Object[])argu[i+2]);
                   System.out.println("(Go _"+labEnd+")");
                 }
                 System.out.println("_"+labElse+":");
-                generateBody(els[1]);
+                generateBody((Object[])e[4]);
                 System.out.println("_"+labEnd+":");
                 return;
             case WHILE:
-                int labStart = newLab();
-                int labQuit = newLab();
+                int labStart = nextLab++;
+                int labQuit = nextLab++;
                 System.out.println("_"+labStart+":");
                 generateExpr((Object[])e[1]);
                 generateBody((Object[])e[2]);
