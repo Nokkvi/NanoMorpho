@@ -142,7 +142,7 @@ public class NanoMorphoParser
         }
         else
         {
-        	return binopexpr();
+        	return binopexpr(priority(NanoMorphoLexer.getLexeme()));
         }
     }
 
@@ -171,7 +171,7 @@ public class NanoMorphoParser
             return e;
         }
     }
-    //TODO: kl�ra
+
     static Object[] smallexpr() throws Exception
     {
         Object[] res;
@@ -304,14 +304,14 @@ public class NanoMorphoParser
 
     static void generateFunction( Object[] fun )
     {
-            //fun = {fname, countount, varcount, res.toArray()};
+            //fun = {fname, argcount, varcount, res.toArray()};
             String fname = (String)fun[0];
-            int count = (Integer)fun[1];
-            int varcount = (Integer)fun[2]; 
-            System.out.println("#\""+fname+"[fun"+count+"]\" =");
+            int argCount = (Integer)fun[1];
+            int varCount = (Integer)fun[2]; 
+            System.out.println("#\""+fname+"[fun"+argCount+"]\" =");
             System.out.println("[");
 
-            for(int k = 0; k<varcount;k++){
+            for(int k = 0; k<varCount;k++){
                 System.out.println("(MakeVal null)");
                 System.out.println("(Push)");
             }
@@ -325,7 +325,26 @@ public class NanoMorphoParser
 
     static void generateExpr( Object[] e )
     {
-
+        switch((int)e[0]){
+            case NAME:
+                System.out.println("(Fetch "+e[1]+")");
+                return;
+            case LITERAL:
+                System.out.println("(MakeVal "+(String)e[1]+")");
+                return;
+            case RETURN:
+                generateExpr((Object[])e[1]);
+                System.out.println("(Return)");
+                return;
+            case OPNAME:
+                generateExpr((Object[])e[2]);
+                System.out.println("Call \""+e[1]+"[f1]\" "+1);
+                return;
+            case IF:
+            case ELSE:
+            case WHILE:
+            case CALL:
+        }
     }
 
     static void generateBody( Object[] bod )
