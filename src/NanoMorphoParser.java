@@ -370,7 +370,14 @@ public class NanoMorphoParser
                 generateBody((Object[])e[1]);
                 return;
             case WHILE:
-
+                int labStart = newLab();
+                int labQuit = newLab();
+                System.out.println("_"+labStart+":");
+                generateExpr((Object[])e[1]);
+                generateBody((Object[])e[2]);
+                System.out.println("(Go _"+labStart+")");
+                System.out.println("_"+labQuit+":");
+                return;
             case CALL:
                 //e = {"CALL", name, args[expr,...,expr]}
                 Object[] args = (Object[])e[2];
