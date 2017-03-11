@@ -65,12 +65,13 @@ public class NanoMorphoParser
         try
         {
             NanoMorphoLexer.startLexer(args[0]);
-            program();
+            code = program();
         }
         catch( Throwable e )
         {
             System.out.println(e.getMessage());
         }
+        generateProgram(args[0],code);
     }
 
     static Object[] program() throws Exception
@@ -139,18 +140,19 @@ public class NanoMorphoParser
         {
             Integer variable = findVar(over(NAME));
             over('=');
-            return new Object[]{"", '"', expr()};
+            return new Object[]{"STORE", variable, expr()};
         }
         else
         {
-        	return binopexpr(priority(NanoMorphoLexer.getLexeme()));
+        	return binopexpr(5);
         }
     }
 
     static Object[] binopexpr(int pri) throws Exception
     {
-        if( pri>7 )
+        if( pri>7 ){
             return smallexpr();
+        }
         else if( pri==2 )
         {
             Object[] e = binopexpr(3);
@@ -164,6 +166,7 @@ public class NanoMorphoParser
         else
         {
             Object[] e = binopexpr(pri+1);
+
             while( getToken1()==OPNAME && priority(NanoMorphoLexer.getLexeme())==pri )
             {
                 String op = advance();
@@ -206,7 +209,7 @@ public class NanoMorphoParser
         case IF:
             over(IF);
             Object[] a = expr();
-            Object[] b = expr();
+            Object[] b = body();
             Vector<Object> elsif = new Vector<Object>();
             while( getToken1()==ELSIF )
             {
@@ -234,7 +237,7 @@ public class NanoMorphoParser
             over('(');
             Object[] e = expr();
             over(')');
-            return e;
+            return new Object[]{"PAREN", e};
         default:
             NanoMorphoLexer.expected("expression");
         }
@@ -381,7 +384,16 @@ public class NanoMorphoParser
                   System.out.println("(Push)");
                   generateExpr((Object[])args[i]);
                 }
-                System.out.println("(CallR #\""+e[1]+"[f"+args.length+"]\" "+args.length+")");
+                System.out.println("(Call #\""+e[1]+"[f"+args.length+"]\" "+args.length+")");
+                return;
+            case "STORE":
+                generateExpr((Object[])e[2]);
+                System.out.println("(Store "+e[1]+")");
+                return;
+            case "PAREN":
+                generateExpr((Object[])e[1]);
+                return;
+
         }
     }
 
