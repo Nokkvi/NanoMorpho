@@ -308,7 +308,7 @@ public class NanoMorphoParser
             String fname = (String)fun[0];
 
             int argCount = (Integer)fun[1];
-            int varCount = (Integer)fun[2]; 
+            int varCount = (Integer)fun[2];
             System.out.println("#\""+fname+"[fun"+argCount+"]\" =");
 
             System.out.println("[");
@@ -343,16 +343,30 @@ public class NanoMorphoParser
                 System.out.println("Call \""+e[1]+"[f1]\" "+1);
                 return;
             case IF:
+
             case ELSE:
+                generateBody((Object[])e[1]);
+                return;
             case WHILE:
+                
             case CALL:
+                //e = {"CALL", name, args[expr,...,expr]}
+                Object[] args = (Object[])e[2];
+                if( args.length!=0){
+                  generateExpr((Object[])args[0]);
+                }
+                for (int i = 1; i!=args.length; i++){
+                  System.out.println("(Push)");
+                  generateExpr((Object[])args[i]);
+                }
+                System.out.println("(CallR #\""+e[1]+"[f"+args.length+"]\" "+args.length+")");
         }
     }
 
     static void generateBody( Object[] bod )
     {
-		for(int i=0; i<bod.length; i++) {
-			generateExpr((Object[])bod[i]);
+		    for(int i=0; i<bod.length; i++) {
+			       generateExpr((Object[])bod[i]);
         }
     }
 }
