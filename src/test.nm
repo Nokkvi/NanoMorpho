@@ -1,5 +1,4 @@
-fibo(n)
-{
+fibo(n){
 	var i,f1,f2,tmp;
 	f1 = 1;
 	f2 = 1;
@@ -22,13 +21,6 @@ f(n)
 	}
 	else
 	{
-		f(n-1)+ f(n-2);
+		f(n-1) + f(n-2);
 	};
-}
-
-main()
-{
-	writeln(1:2:3:null);
-	writeln("fibo(35)="++fibo(35));
-	writeln("fibo(35)="++f(35));
 }

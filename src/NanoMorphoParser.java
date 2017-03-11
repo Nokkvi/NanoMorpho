@@ -139,7 +139,7 @@ public class NanoMorphoParser
         {
             Integer variable = findVar(over(NAME));
             over('=');
-            return new Object[]{variable, '"', expr()};
+            return new Object[]{"", '"', expr()};
         }
         else
         {
@@ -205,7 +205,8 @@ public class NanoMorphoParser
             return new Object[]{"WHILE",condition,whileExpr};
         case IF:
             over(IF);
-            Object[] blah = new Object[]{"IF", expr(), body()};
+            Object[] a = expr();
+            Object[] b = expr();
             Vector<Object> elsif = new Vector<Object>();
             while( getToken1()==ELSIF )
             {
@@ -214,25 +215,26 @@ public class NanoMorphoParser
                 elsif.add(expr());
                 elsif.add(body());
             }
-            Object[] els;
+            Object[] c = null;
             if( getToken1()==ELSE )
             {
                 over(ELSE);
-                els = new Object[]{"ELSE", body()};
+                c = body();
             }
-            return new Object[]{"IF", expr(), body(), "ELSE", body(), elsif.toArray()};
+            return new Object[]{"IF", a, b, "ELSE", c, elsif.toArray()};
         case LITERAL:
             res = new Object[]{"LITERAL", getToken1()};
             over(LITERAL);
             return res;
         case OPNAME:
-            int tok = getToken1();
+            String opname = getLexeme();
             over(OPNAME);
-            return new Object[]{"OPNAME", tok, smallexpr()} ;
+            return new Object[]{"OPNAME", opname, smallexpr()} ;
         case '(':
             over('(');
+            Object[] e = expr();
             over(')');
-            return new Object[]{expr()};
+            return e;
         default:
             NanoMorphoLexer.expected("expression");
         }
@@ -281,7 +283,7 @@ public class NanoMorphoParser
         case '%':
             return 7;
         default:
-            throw new Error("Invalid opname");
+            throw new Error("Invalid opname at "+NanoMorphoLexer.getLine()+" Column: "+NanoMorphoLexer.getToken2()+"");
         }
     }
 
@@ -325,22 +327,22 @@ public class NanoMorphoParser
 
     static void generateExpr( Object[] e )
     {
-        switch((int)e[0]){
-            case NAME:
+        switch((String)e[0]){
+            case "NAME":
                 System.out.println("(Fetch "+e[1]+")");
                 return;
-            case LITERAL:
+            case "LITERAL":
                 System.out.println("(MakeVal "+(String)e[1]+")");
                 return;
-            case RETURN:
+            case "RETURN":
                 generateExpr((Object[])e[1]);
                 System.out.println("(Return)");
                 return;
-            case OPNAME:
+            case "OPNAME":
                 generateExpr((Object[])e[2]);
                 System.out.println("Call \""+e[1]+"[f1]\" "+1);
                 return;
-            case IF:
+            case "IF":
                 //e = {res, elsif, els}
                 Object[] argu = (Object[])e[5];
                 int labElse = nextLab++;
@@ -360,7 +362,7 @@ public class NanoMorphoParser
                 generateBody((Object[])e[4]);
                 System.out.println("_"+labEnd+":");
                 return;
-            case WHILE:
+            case "WHILE":
                 int labStart = nextLab++;
                 int labQuit = nextLab++;
                 System.out.println("_"+labStart+":");
@@ -369,7 +371,7 @@ public class NanoMorphoParser
                 System.out.println("(Go _"+labStart+")");
                 System.out.println("_"+labQuit+":");
                 return;
-            case CALL:
+            case "CALL":
                 //e = {"CALL", name, args[expr,...,expr]}
                 Object[] args = (Object[])e[2];
                 if( args.length!=0){
