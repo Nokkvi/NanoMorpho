@@ -352,22 +352,19 @@ public class NanoMorphoParser
                 int labElse = newLab();
                 int labEnd = newLab();
                 generateExpr((Object[])res[1]);
-                System.out.println("_"+labElse+":");
+                System.out.println("GoFalse _"+labElse+":");
                 generateBody((Object[])res[2]);
                 System.out.println("(Go _"+labEnd+")");
                 for(int i = 0; i<elsif.length;i+=3){
-                  generateExpr(elsif[i+1]);
                   System.out.println("_"+labElse+":");
+                  generateExpr(elsif[i+1]);
+                  System.out.println("GoFalse _"+labElse+":");
                   generateBody(elsif[i+2]);
                   System.out.println("(Go _"+labEnd+")");
                 }
                 System.out.println("_"+labElse+":");
                 generateBody(els[1]);
                 System.out.println("_"+labEnd+":");
-                return;
-
-            case ELSE:
-                generateBody((Object[])e[1]);
                 return;
             case WHILE:
                 int labStart = newLab();
