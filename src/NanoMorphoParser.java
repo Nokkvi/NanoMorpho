@@ -18,10 +18,6 @@ public class NanoMorphoParser
     final static int STORE = 1011;
     final static int PAREN = 1012;
 
-    enum CodeType{
-      IF, ELSE, ELSIF, WHILE, VAR, RETURN, NAME, OPNAME, LITERAL, CALL, STORE, PAREN
-    };
-
 
     static String advance() throws Exception
     {
@@ -99,7 +95,7 @@ public class NanoMorphoParser
         {
             for(;;)
             {
-            	addVar(over(NAME));
+            	  addVar(over(NAME));
                 if( getToken1()!=',' ) break;
                 over(',');
             }
@@ -108,11 +104,11 @@ public class NanoMorphoParser
         int argCount = varCount;
         while( getToken1()==VAR )
         {
-			decl();
+			      decl();
             over(';');
         }
 
-		Vector<Object> res = new Vector<Object>();
+		    Vector<Object> res = new Vector<Object>();
 
         while( getToken1()!='}' )
         {
@@ -140,17 +136,17 @@ public class NanoMorphoParser
         if( getToken1()==RETURN )
         {
             over(RETURN);
-            return new Object[]{CodeType.RETURN, expr()};
+            return new Object[]{"RETURN", expr()};
         }
         else if( getToken1()==NAME && NanoMorphoLexer.getToken2()=='=' )
         {
             int variable = findVar(over(NAME));
             over('=');
-            return new Object[]{CodeType.STORE, variable, expr()};
+            return new Object[]{"STORE", variable, expr()};
         }
         else
         {
-        	return binopexpr(5);
+        	return binopexpr(1);
         }
     }
 
@@ -165,7 +161,7 @@ public class NanoMorphoParser
             if( getToken1()==OPNAME && priority(NanoMorphoLexer.getLexeme())==2 )
             {
                 String op = advance();
-                e = new Object[]{CodeType.CALL,op,new Object[]{e,binopexpr(2)}};
+                e = new Object[]{"CALL",op,new Object[]{e,binopexpr(2)}};
             }
             return e;
         }
@@ -176,7 +172,7 @@ public class NanoMorphoParser
             while( getToken1()==OPNAME && priority(NanoMorphoLexer.getLexeme())==pri )
             {
                 String op = advance();
-                e = new Object[]{CodeType.CALL,op,new Object[]{e,binopexpr(pri+1)}};
+                e = new Object[]{"CALL",op,new Object[]{e,binopexpr(pri+1)}};
             }
             return e;
         }
@@ -203,15 +199,15 @@ public class NanoMorphoParser
                     }
                 }
                 over(')');
-                return new Object[]{CodeType.CALL, name, resu.toArray()};
+                return new Object[]{"CALL", name, resu.toArray()};
             }
-            return new Object[]{CodeType.NAME, name};
+            return new Object[]{"NAME", findVar(name)};
         case WHILE:
             Object condition, whileExpr;
             over(WHILE);
             condition = expr();
             whileExpr = body();
-            return new Object[]{CodeType.WHILE,condition,whileExpr};
+            return new Object[]{"WHILE",condition,whileExpr};
         case IF:
             over(IF);
             Object[] a = expr();
@@ -220,7 +216,7 @@ public class NanoMorphoParser
             while( getToken1()==ELSIF )
             {
                 over(ELSIF);
-                elsif.add(CodeType.ELSIF);
+                elsif.add("ELSIF");
                 elsif.add(expr());
                 elsif.add(body());
             }
@@ -230,20 +226,20 @@ public class NanoMorphoParser
                 over(ELSE);
                 c = body();
             }
-            return new Object[]{CodeType.IF, a, b, CodeType.ELSE, c, elsif.toArray()};
+            return new Object[]{"IF", a, b, "ELSE", c, elsif.toArray()};
         case LITERAL:
-            res = new Object[]{CodeType.LITERAL, getToken1()};
+            res = new Object[]{"LITERAL", getLexeme()};
             over(LITERAL);
             return res;
         case OPNAME:
             String opname = getLexeme();
             over(OPNAME);
-            return new Object[]{CodeType.OPNAME, opname, smallexpr()} ;
+            return new Object[]{"OPNAME", opname, smallexpr()} ;
         case '(':
             over('(');
             Object[] e = expr();
             over(')');
-            return new Object[]{CodeType.PAREN, e};
+            return e;
         default:
             NanoMorphoLexer.expected("expression");
         }
@@ -318,7 +314,7 @@ public class NanoMorphoParser
 
             int argCount = (int)fun[1];
             int varCount = (int)fun[2];
-            System.out.println("#\""+fname+"[fun"+argCount+"]\" =");
+            System.out.println("#\""+fname+"[f"+argCount+"]\" =");
 
             System.out.println("[");
 
@@ -327,11 +323,10 @@ public class NanoMorphoParser
                 System.out.println("(Push)");
             }
 
-            for(int i=3; i!=fun.length; i++){
-                System.out.println("Hér");
-                generateExpr((Object[])fun[i]);
+            for(Object e:(Object[])fun[3]){
+                generateExpr((Object[])e);
             }
-            System.out.println("Return");
+            System.out.println("(Return)");
             System.out.println("];");
     }
 
@@ -339,39 +334,34 @@ public class NanoMorphoParser
 
     static void generateExpr( Object[] e )
     {
-        switch((CodeType)e[0]){
-            case NAME:
-                System.out.println("N");
+        switch((String)e[0]){
+            case "NAME":
                 System.out.println("(Fetch "+e[1]+")");
                 return;
-            case LITERAL:
-                System.out.println("L");
+            case "LITERAL":
                 System.out.println("(MakeVal "+(String)e[1]+")");
                 return;
-            case RETURN:
-                System.out.println("R");
+            case "RETURN":
                 generateExpr((Object[])e[1]);
                 System.out.println("(Return)");
                 return;
-            case OPNAME:
-                System.out.println("O");
+            case "OPNAME":
                 generateExpr((Object[])e[2]);
-                System.out.println("Call \""+e[1]+"[f1]\" "+1);
+                System.out.println("(Call \""+e[1]+"[f1]\" "+1+")");
                 return;
-            case IF:
-                System.out.println("I");
+            case "IF":
                 //e = {res, elsif, els}
                 Object[] argu = (Object[])e[5];
                 int labElse = nextLab++;
                 int labEnd = nextLab++;
                 generateExpr((Object[])e[1]);
-                System.out.println("GoFalse _"+labElse+":");
+                System.out.println("(GoFalse _"+labElse+")");
                 generateBody((Object[])e[2]);
                 System.out.println("(Go _"+labEnd+")");
                 for(int i = 0; i<argu.length;i+=3){
                   System.out.println("_"+labElse+":");
                   generateExpr((Object[])argu[i+1]);
-                  System.out.println("GoFalse _"+labElse+":");
+                  System.out.println("(GoFalse _"+labElse+")");
                   generateBody((Object[])argu[i+2]);
                   System.out.println("(Go _"+labEnd+")");
                 }
@@ -379,18 +369,17 @@ public class NanoMorphoParser
                 generateBody((Object[])e[4]);
                 System.out.println("_"+labEnd+":");
                 return;
-            case WHILE:
-                System.out.println("W");
+            case "WHILE":
                 int labStart = nextLab++;
                 int labQuit = nextLab++;
                 System.out.println("_"+labStart+":");
                 generateExpr((Object[])e[1]);
+                System.out.println("(GoFalse _"+labQuit+")");
                 generateBody((Object[])e[2]);
                 System.out.println("(Go _"+labStart+")");
                 System.out.println("_"+labQuit+":");
                 return;
-            case CALL:
-                System.out.println("C");
+            case "CALL":
                 //e = {"CALL", name, args[expr,...,expr]}
                 Object[] args = (Object[])e[2];
                 if( args.length!=0){
@@ -402,13 +391,11 @@ public class NanoMorphoParser
                 }
                 System.out.println("(Call #\""+e[1]+"[f"+args.length+"]\" "+args.length+")");
                 return;
-            case STORE:
-                System.out.println("S");
+            case "STORE":
                 generateExpr((Object[])e[2]);
                 System.out.println("(Store "+e[1]+")");
                 return;
-            case PAREN:
-                System.out.println("p");
+            case "PAREN":
                 generateExpr((Object[])e[1]);
                 return;
 

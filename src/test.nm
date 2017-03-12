@@ -25,3 +25,9 @@ f(n)
 		f(n-1)+ f(n-2);
 	};
 }
+
+main(){
+	writeln(1:2:3:null);
+	writeln(fibo(10));
+	writeln(f(10));
+}
